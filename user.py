@@ -18,27 +18,45 @@ class Field(object):
         self.value = value
 
     def __get__(self, obj, type=None):
-        pass
+        return self.value
 
     def __set__(self, obj, value):
-        pass
+        obj.value = value
+
+    def __repr__(self):
+        return "Field: name={}, value={}".format(self.name, self.value)
 
 
 class IntegerField(Field):
-    pass
+    def __repr__(self):
+        return "IntegerField: name={}, value={}".format(self.name, self.value)
 
 
 class CharField(Field):
-    pass
+    def __repr__(self):
+        return "CharField: name={}, value={}".format(self.name, self.value)
 
 
 class ModelMetaclass(type):
 
     def __new__(cls, name, bases, _dict):
 
-        result_dict = {key: value for key, value in _dict.items() if isinstance(value, Field)}
-        columns = [key for key in result_dict]
+        # Gathering all the fields, defined in the User
+        fields_dict = {key: value
+                       for key, value in _dict.items()
+                       if isinstance(value, Field)}
+
+        # Set the Field.name attribute to the name of the variable
+        for key in fields_dict:
+            # print "Setting {} to {}".format(fields_dict[key].name, key)
+            fields_dict[key].name = key
+
+        columns = [key for key in fields_dict]
+        columns.sort()
+
+        _dict['fields_dict'] = fields_dict
         _dict['columns'] = columns
+        _dict['table'] = name
 
         return type.__new__(cls, name, bases, _dict)
 
@@ -50,20 +68,43 @@ class Model(object):
     id = IntegerField()
     id.db_type = 'INTEGER PRIMARY KEY AUTOINCREMENT'
 
-    @classmethod
-    def setup_schema(cls, cursor):
-        pass
-
     def __init__(self, cursor, **kwargs):
         self.cursor = cursor
         for key, value in kwargs.items():
-            print "KEY: {} VALUE {}".format(key, value)
-            self.key = value
+            self.fields_dict[key].value = value
+
+    @classmethod
+    def pair_name_type(cls):
+        result = ""
+        for key, value in cls.fields_dict.items():
+            if isinstance(value, CharField):
+                result += "{} text, ".format(key)
+            elif isinstance(value, IntegerField):
+                result += "{} real, ".format(key)
+        return result[:-2]
+
+    @classmethod
+    def setup_schema(cls):
+        # cursor.execute('''CREATE TABLE {} ({})'''.format(cls.table, Model.pair_name_type()))
+        return '''CREATE TABLE {} ({})'''.format(cls.table, User.pair_name_type())
 
     def save(self):
-        pass
+        connection.commit()
+
+    def __str__(self):
+        result = ""
+        for field in self.fields_dict.items():
+            if field is not None:
+                result += str(field)
+        return result
 
 
 class User(Model):
     name = CharField()
     age = IntegerField()
+
+
+gosho = User(cursor, name='Gosho', age=20)
+pesho = User(cursor, name='Pesho', age=10)
+print gosho
+print pesho
