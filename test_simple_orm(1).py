@@ -14,55 +14,45 @@ class User(Model):
 class TestModel(unittest.TestCase):
 
     def setUp(self):
-        cursor = Mock()
-        self.u = User(cursor, first_name="pepi", age=10)
-
-    def test_row_schema(self):
-        self.assertEqual(self.u.row_schema(), 'first_name text, age real, sex text')
-
-    def test_row_values(self):
-        self.assertEqual(self.u.row_values(), ('pepi', '10', 'default_empty'))
+        self.cursor = Mock(lastrowid=1)
+        self.u = User(self.cursor, first_name="pepi", age=10)
 
     def test_setup(self):
-        cursor = Mock()
-        User.setup_schema(cursor)
-        cursor.execute.assert_called_with(
+        User.setup_schema(self.cursor)
+        self.cursor.execute.assert_called_with(
             'CREATE TABLE IF NOT EXISTS User (first_name text, age real, sex text)')
 
-    # def test_insert(self):
-    #     cursor = Mock(lastrowid=1)
-    #     user = User(cursor)
-    #     User.setup_schema(cursor)
-    #     user.insert(cursor)
-    #     cursor.execute.assert_called_with('''INSERT INTO User VALUES (?, ?, ?)''', ('pepi', '10', 'default_empty'))
+    def test_insert(self):
+        user = User(self.cursor, first_name='pepi', age=10)
+        User.setup_schema(self.cursor)
+        user.insert()
+        self.cursor.execute.assert_called_with(
+            '''INSERT INTO User VALUES (?, ?, ?)''',
+            ('pepi', '10', 'default_empty'))
 
-    # def test_save(self):
-    #     cursor = Mock(lastrowid=1)
-    #     # self.u.save()
-    #     cursor.execute.assert_called_with('''INSERT INTO User VALUES ('pepi',10,'default_empty')''')
+    def test_update(self):
+        user = User(self.cursor, first_name='pepi', age=10)
+        User.setup_schema(self.cursor)
+        user.insert()
+        user.update()
+        self.cursor.execute.assert_called_with(
+            '''UPDATE User SET first_name = ?, age = ?, sex = ? WHERE rowid = 1''',
+            ('pepi', '10', 'default_empty'))
 
-    # def test_update(self):
-    #     cursor = Mock(lastrowid=1)
-    #     self.u.insert(cursor)
-    #     self.u.update(cursor)
-    #     cursor.execute.assert_called_with(
-    #         'UPDATE User SET first_name = ?, age = ?, sex = ? WHERE id = 1', ('pepi', '10', 'default_empty'))
+    def test_save(self):
+        user = User(self.cursor, first_name='pepi', age=10)
+        User.setup_schema(self.cursor)
 
-    def test_validation(self):
-        q = Question(None)
-        q.count = 1
-        with self.assertRaises(model.ValidationError):
-            q.count = 'z'
+        user.save()
+        self.cursor.execute.assert_called_with(
+            '''INSERT INTO User VALUES (?, ?, ?)''',
+            ('pepi', '10', 'default_empty'))
 
-    def test_char_filed(self):
-        class Answer(model.Model):
-
-            text = model.CharField(10)
-
-        a = Answer(None)
-        a.text = 'a'
-        with self.assertRaises(model.ValidationError):
-            a.text = 'aaaaaaaaaaaaaaaaaaaaaaaaaaa'
+        user.first_name = 'NewName'
+        user.save()
+        self.cursor.execute.assert_called_with(
+            '''UPDATE User SET first_name = ?, age = ?, sex = ? WHERE rowid = 1''',
+            ('NewName', '10', 'default_empty'))
 
 
 if __name__ == '__main__':
