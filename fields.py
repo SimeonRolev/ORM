@@ -32,6 +32,36 @@ class Field(object):
     def __repr__(self):
         return "Field: name={}".format(self.name)
 
+    def __eq__(self, other):
+        return '{}{}?'.format(self.name, '='), other
+
+    def __ne__(self, other):
+        return '{}{}?'.format(self.name, '!='), other
+
+    def __gt__(self, other):
+        return '{}{}?'.format(self.name, '>'), other
+
+    def __lt__(self, other):
+        return '{}{}?'.format(self.name, '<'), other
+
+    def __ge__(self, other):
+        return '{}{}?'.format(self.name, '>='), other
+
+    def __le__(self, other):
+        return '{}{}?'.format(self.name, '<='), other
+
+    def startswith(self, string):
+        return "{} LIKE ?".format(self.name), string+'%'
+
+    def endswith(self, string):
+        return "{} LIKE ?".format(self.name), '%'+string
+
+    def contains(self, string):
+        return "{} LIKE ?".format(self.name), '%'+string+'%'
+
+    def in_(self, *values):
+        return "{} IN ({})".format(self.name, ','.join('?'*len(values))), values
+
 
 class IntegerField(Field):
 

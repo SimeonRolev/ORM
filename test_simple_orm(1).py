@@ -1,6 +1,7 @@
 import unittest
 from mock import Mock
 from model import Model, CharField, IntegerField
+from query import Query, and_, or_
 
 
 class User(Model):

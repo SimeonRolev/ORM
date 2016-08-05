@@ -1,5 +1,5 @@
 import sqlite3
-from query import Query
+from query import Query, and_, or_
 from fields import Field, CharField, IntegerField
 
 conn = sqlite3.connect('people.db')
@@ -104,3 +104,4 @@ class User(Model):
     first_name = CharField()
     age = IntegerField()
     sex = CharField()
+
