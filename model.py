@@ -92,13 +92,13 @@ class School(Model):
 # user.first_name = 'Grozdan'
 # user.save()
 
-postgre_db = PostgreDatabase('schools')
-postgre_db.create_tables(School)
-school = School(name="Naiden Gerov", age=120, students_count=50)
-school.save()
-school.name = "Updated"
-school.save()
-print School.select().where(School.name.contains("Updated")).limit(10).get()
+# postgre_db = PostgreDatabase('schools')
+# postgre_db.create_tables(School)
+# school = School(name="Naiden Gerov", age=120, students_count=50)
+# school.save()
+# school.name = "Updated"
+# school.save()
+# print School.select().where(School.name.contains("Updated")).limit(10).get()
 
 # con = mysql.connect(host="localhost", user="Simeon Rolev", passwd="password", db="schools")
 #
