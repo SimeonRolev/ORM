@@ -16,8 +16,13 @@ def or_(*expressions):
 class Query(object):
 
     def __init__(self, table_class=None, fields=None):
-        self.table = table_class.table
+        if table_class.database.db_type == 'postgres':
+            self.table = table_class.schema_and_table
+        else:
+            self.table = table_class.table
         self.cursor = table_class.cursor
+        self.placeholder = table_class.placeholder
+
         if not fields:
             self.selected_fields = 'SELECT * FROM {} '.format(self.table)
         else:
@@ -39,6 +44,8 @@ class Query(object):
             self.values.extend(expr[1])
         else:
             self.values.append(expr[1])
+
+        self.query = self.query.replace('?', self.placeholder)
         return self
 
     # how many rows to fetch

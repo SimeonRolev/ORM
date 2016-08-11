@@ -1,8 +1,11 @@
 import sqlite3
+import psycopg2 as PG
+import MySQLdb as mysql
+
+
+from database import SqliteDatabase, PostgreDatabase, MySQLDatabase
 from query import Query, and_, or_
 from fields import Field, CharField, IntegerField
-
-conn = sqlite3.connect('people.db')
 
 
 class ModelMetaClass(type):
@@ -20,7 +23,6 @@ class ModelMetaClass(type):
         _dict['columns'] = columns
         _dict['table'] = name
         _dict['sorted_columns'] = sorted(columns, key=lambda x: columns[x].order_num)
-        _dict['cursor'] = conn.cursor()
 
         return type.__new__(cls, name, bases, _dict)
 
@@ -28,10 +30,9 @@ class ModelMetaClass(type):
 class Model(object):
 
     __metaclass__ = ModelMetaClass
+    database = None
 
-    def __init__(self, cursor, **kwargs):
-
-        self.cursor = cursor
+    def __init__(self, **kwargs):
 
         # Setting the values of the fields
         for key, value in self.columns.items():
@@ -45,47 +46,13 @@ class Model(object):
                 else:
                     raise AttributeError("You must set a value to: {}".format(key))
 
-    @classmethod
-    def qmarks(cls):
-        result = ''
-        for _ in cls.columns:
-            result += '?, '
-        return '(' + result[:-2] + ')'
-
-    @classmethod
-    def row_schema(cls):
-        result = ''
-        for key in cls.sorted_columns:
-            result += "{} {}, ".format(key, cls.columns[key].sql_type)
-        return result[:-2]
-
-    def row_values(self):
-        result = list()
-        row = [key for key in self.sorted_columns]
-        for value in row:
-            result.append(str(getattr(self, value)))
-        return tuple(result)
-
-    @classmethod
-    def setup_schema(cls, cursor):
-        cursor.execute('''CREATE TABLE IF NOT EXISTS {} ({})'''.format(cls.table, cls.row_schema()))
+        self.__class__.placeholder = self.database.placeholder
 
     def insert(self):
-        query = """INSERT INTO {} VALUES {}""".format(self.table, self.qmarks())
-        self.cursor.execute(query, self.row_values())
-        conn.commit()
-        self._id = self.cursor.lastrowid
-
-    def set_of_update(self):
-        result = ''
-        for col in self.sorted_columns:
-            result += '{} = ?, '.format(col)
-        return result[:-2]
+        self.database.insert(self.table, self)
 
     def update(self):
-        query = """UPDATE {} SET {} WHERE {}""".format(self.table, self.set_of_update(), 'rowid = ' + str(self._id))
-        self.cursor.execute(query, self.row_values())
-        conn.commit()
+        self.database.update(self.table, self)
 
     def save(self):
         if hasattr(self, '_id'):
@@ -104,4 +71,50 @@ class User(Model):
     first_name = CharField()
     age = IntegerField()
     sex = CharField()
+
+    def __repr__(self):
+        return "FN: {} | age {}".format(self.first_name, self.age)
+
+
+class School(Model):
+    # These fields get declared in the class.
+    # When you make an instance, it only saves the value
+    name = CharField()
+    age = IntegerField()
+    students_count = IntegerField()
+
+
+# sqlite_db = SqliteDatabase('people.db')
+# sqlite_db.create_tables(User)
+# user = User(first_name='Ivan', age=20, is_active=False)
+
+# user.save()
+# user.first_name = 'Grozdan'
+# user.save()
+
+postgre_db = PostgreDatabase('schools')
+postgre_db.create_tables(School)
+school = School(name="Naiden Gerov", age=120, students_count=50)
+school.save()
+school.name = "Updated"
+school.save()
+print School.select().where(School.name.contains("Updated")).limit(10).get()
+
+# con = mysql.connect(host="localhost", user="Simeon Rolev", passwd="password", db="schools")
+#
+# ms_database = MySQLDatabase('MySqlSchools')
+# ms_database.create_tables(School)
+# s = School(name="Naiden Gerov", age=120, students_count=50)
+# s.save()
+# s.name = "Last Update"
+# s.save()
+# print School.select().where(School.age > 50).get()
+
+# conn = PG.connect(database='postgres', user='postgres', password='password', host='localhost')
+# pg_cursor = conn.cursor()
+# # pg_cursor.execute('CREATE SCHEMA rolev_schema')
+# pg_cursor.execute('CREATE TABLE rolev_schema.gibsons('
+#                   'rowid INT CONSTRAINT rowid PRIMARY KEY,'
+#                   'name varchar(300))')
+# conn.commit()
 

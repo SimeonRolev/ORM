@@ -4,14 +4,14 @@ class Field(object):
 
     def __init__(self, name=None, primary_key=False,
                  max_length=None, null=True,
-                 default=None, sql_type='text'):
+                 default=None, content_type='text'):
 
         self.order_num = Field.order_num + 1
         Field.order_num += 1
 
-        if sql_type not in ('text', 'real'):
+        if content_type not in ('text', 'real'):
             raise AttributeError("The SQL Field type can only be text or real")
-        self.sql_type = sql_type
+        self.content_type = content_type
         self.name = name  # The metaclass sets the self.name to name of the Field in the definition (ex. firstname)
         self.primary_key = primary_key
         self.max_length = max_length
@@ -66,7 +66,7 @@ class Field(object):
 class IntegerField(Field):
 
     def __init__(self):
-        return super(IntegerField, self).__init__(default=0, sql_type='real')
+        return super(IntegerField, self).__init__(default=0, content_type='real')
 
     def __repr__(self):
         return "IntegerField: name={}, order: {}".format(self.name, self.order_num)
